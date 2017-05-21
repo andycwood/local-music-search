@@ -11,26 +11,36 @@ The rest of the details can be determined from the pom.xml file
 
 Build using maven.
 
-Running the application:
+## Running the application:
 * modify application.properties:
-** lucene.indexFolder : location of your lucene index files
-** lucene.musicFolder : location of your local music files
-** spring.data.mongodb.* : mongodb details
+*+ lucene.indexFolder : location of your lucene index files
+*+ lucene.musicFolder : location of your local music files
+*+ spring.data.mongodb.* : mongodb details
 
 Be sure mongod is running
 
 Endpoints:
 * /
-** this will list some details about the endpoints
+*+ this will list some details about the endpoints
 * /search
-** parameter : terms
-*** the search terms
-** parameter : size
-*** the number of results 
-*** (default is 10)
+*+ parameter : terms
+
+  > the search terms
+
+*+ parameter : size
+
+  > the number of results 
+  > (default is 10)
 * /load
-** parameter : action
-*** action=start
-**** kick off a new indexing job
-*** action=status
-**** provide high level status of the indexing job
+*+ parameter : action
+
+  > action=start
+  > kick off a new indexing job
+
+  > action=status
+  > provide high level status of the indexing job
+
+TODO : 
+* Implement Playback API
+* Implement React.js UI
+
