@@ -36,6 +36,44 @@ Endpoints:
   * parameter : terms : the search terms
   * parameter : size : the number of results (default=10)
 
+Sample Output of a workflow:
+1. Query for music, but none has been indexed yet:
+/search?terms=fancy
+```
+[]
+```
+
+2. Check load status, but we have never done a load:
+check load status
+/load?action=status
+```
+{"status":"idle","tracks":0,"tracksprocessed":0}
+```
+
+3. Start a load
+/load?action=start
+```
+{"status":"starting","tracks":0,"tracksprocessed":0}
+``` 
+
+4. Check on load status
+/load?action=status
+```
+{"status":"running","tracks":7534,"tracksprocessed":1221}
+```
+
+5. Look for tracks processed to match tracks found:
+/load?action=status
+```
+{"status":"idle","tracks":7534,"tracksprocessed":7534}
+```
+
+6. Query music after load is complete
+/search?terms=fancy
+```
+[{"id":"591f81989f865d10a250d90f","path":"/Users/andywood/Music/Iggy_Azalea_Fancy_featuring_Charli_XCX.mp3","artist":"Iggy Azalea","album":"Fancy","title":"Fancy featuring Charli XCX"},{"id":"591f819b9f865d10a250dda1","path":"/Users/andywood/Music/iTunes/iTunes Music/Music/Iggy Azalea/Fancy/Fancy featuring Charli XCX.mp3","artist":"Iggy Azalea","album":"Fancy","title":"Fancy featuring Charli XCX"}]
+```
+
 TODO : 
 * Implement Playback API
 * Implement React.js UI
