@@ -2,6 +2,7 @@ package com.werdnadoow;
 
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Matchers.contains;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -29,10 +30,8 @@ public class MusicSearchApplicationTests {
 
     @Test
     public void getHello() throws Exception {
-        mvc.perform(MockMvcRequestBuilders.get("/").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().string(equalTo("Greetings from Music Search!")));
-        
+        mvc.perform(MockMvcRequestBuilders.get("/").accept(MediaType.TEXT_HTML))
+                .andExpect(status().isOk());
     }
     
     @Test
