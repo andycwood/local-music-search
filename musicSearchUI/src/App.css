@@ -1,0 +1,60 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #038;
+  height: 40px;
+  padding: 20px;
+  color: white;
+}
+
+.App-body {
+  background-color: #004;
+  padding: 20px;
+  color: white;
+}
+.App-intro {
+  font-size: large;
+}
+
+.SearchBox {
+  padding: 5px;
+  height: 40px;
+}
+
+.SearchHeader {
+  font-weight: bold;
+}
+
+.Songs {
+  background-color: black;
+  padding: 10px;
+  color: white;
+  text-align: left;
+}
+
+#row0 {
+  background-color: #808080;
+}
+
+#row1 {
+  background-color: #696969;
+}
+
+.SongTitle {
+   text-align: left;
+   width: 40%;
+   font-style: italic;
+   font-weight: normal;
+}
+
+.SongArtist {
+   text-align: left;
+   width: 40%;
+}
+
+.SongItem {
+   text-align: left;
+   width: 90%;
+}
