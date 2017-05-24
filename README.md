@@ -13,8 +13,8 @@ and the package.json file
 
 * Build the Spring server using maven
 * Build the UI as follows:
-** cd ./musicSearchUI
-** npm install
+  * cd ./musicSearchUI
+  * npm install
 
 ## Configure the application:
 * modify application.properties:
@@ -38,7 +38,7 @@ Run Java Server
 
 ## React front end:
 * locahost:3000
-** there is a simple search box
+  * there is a simple search box
 
 You won't see any search results until you kick off an indexing job:
 * http://localhost:8080/load?action=start
