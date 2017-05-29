@@ -3,6 +3,10 @@ package com.werdnadoow;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -12,10 +16,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -190,6 +197,121 @@ public class MusicSearchController {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return "{\"status\"=\"error\"}";
+		return "{\"status\" : \"error\"}";
+    }
+    // helper function to get a song object from a song id
+    public Song lookup(String songid) {
+		// Lookup the Song in mongo, get the details
+		Song s = null;
+		if (songRepository != null) {
+			List<Song> ls = songRepository.findById(songid);
+			// if start, then add this Song on top
+			// else add to end of queue
+			if (ls != null) {
+				if (ls.size() > 0) {
+					s = ls.get(0);
+				}
+			}
+		}
+		return s;
+    }
+    
+    // Play manages additions to the playback queue
+    // songId= id of the song to play
+    // index=-1 : put this song at the end of the queue
+    // index=X : put the song at X location on the play queue
+    // TODO : implement response Entity
+    @CrossOrigin(origins = "http://localhost:3000")
+    @RequestMapping(value = "/queue", method = RequestMethod.POST, produces = "application/json")
+    public ResponseEntity<Deque<Song>> queueAdd(@RequestBody QueueRequest queueRequest ) {
+
+    	boolean success = true;
+    	
+    	if (queueRequest == null || queueRequest.songId == null)
+    		success = false;
+    	
+    	if (success)
+    	{
+	    	// Get the Play Queue
+			Deque<Song> playQueue = PlayQueue.getInstance();
+			
+			if (playQueue == null) {
+				success = false;
+			}
+			else {
+				// we will pass the whole queue back in the response
+				
+				// Lookup the Song in mongo, get the details
+				Song s = lookup(queueRequest.songId);
+				if (s != null) {
+					// check to see if the queue already contains this item.
+					// if so than ignore
+					if (!playQueue.contains(s))
+						playQueue.add(s);
+				}
+			}
+  
+			// TODO: create a new play thread if one does not exist already
+	
+			return new ResponseEntity<Deque<Song>>(playQueue, HttpStatus.OK);
+	    }
+    	return new ResponseEntity<Deque<Song>>(new ArrayDeque<Song>(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    
+    // Play manages additions to the playback queue
+    // songId= id of the song to play
+    // index=-1 : put this song at the end of the queue
+    // index=X : put the song at X location on the play queue
+    // TODO : implement response Entity
+    @CrossOrigin(origins = "http://localhost:3000")
+    @RequestMapping(value = "/queue", method = RequestMethod.DELETE, produces = "application/json")
+    public ResponseEntity<Deque<Song>> queueDelete(@RequestBody QueueRequest queueRequest ) {
+
+    	boolean success = true;
+    	
+    	if (queueRequest == null || queueRequest.songId == null)
+    		success = false;
+    	
+    	if (success)
+    	{
+	    	// Get the Play Queue
+			PlayQueue<Song> playQueue = PlayQueue.getInstance();
+			
+			if (playQueue == null) {
+				success = false;
+			}
+			else {
+				// we will pass the whole queue back in the response
+				
+				// Lookup the Song in mongo, get the details
+				Song s = lookup(queueRequest.songId);
+				if (s != null) {
+					// check to see if the queue already contains this item.
+					// if so than ignore
+					Iterator<Song> i = playQueue.iterator();
+					while (i.hasNext()) {
+						Song song = i.next();
+						if (song.getId().compareTo(queueRequest.songId)==0) {
+							i.remove();
+							System.out.println("removed " + s);
+						}
+					}
+				}
+			}
+  
+			// TODO: create a new play thread if one does not exist already
+	
+			return new ResponseEntity<Deque<Song>>(playQueue, HttpStatus.OK);
+	    }
+    	return new ResponseEntity<Deque<Song>>(new ArrayDeque<Song>(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }   
+    
+    @CrossOrigin(origins = "http://localhost:3000")
+    @RequestMapping(value = "/queue", method = RequestMethod.GET, produces = "application/json")
+    public ResponseEntity<Deque<Song>> queueList() {
+		
+		// Get the Play Queue
+		Deque<Song> playQueue = PlayQueue.getInstance();
+		return new ResponseEntity<Deque<Song>>(playQueue,HttpStatus.OK);
     }
 }

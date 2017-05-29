@@ -1,5 +1,6 @@
 .App {
-  text-align: center;
+  text-align: left;
+  background-color: #038;
 }
 
 .App-header {
@@ -27,9 +28,23 @@
   font-weight: bold;
 }
 
+.QueueSearch {
+  display:flex; 
+  flex-direction:row;
+}
+
+.Queue {
+  background-color: #003;
+  padding: 10px;
+  width: 40%;
+  color: white;
+  text-align: left;
+}
+
 .Songs {
   background-color: black;
   padding: 10px;
+  width: 60%;
   color: white;
   text-align: left;
 }
@@ -44,17 +59,15 @@
 
 .SongTitle {
    text-align: left;
-   width: 40%;
+
    font-style: italic;
    font-weight: normal;
 }
 
 .SongArtist {
    text-align: left;
-   width: 40%;
 }
 
 .SongItem {
    text-align: left;
-   width: 90%;
 }

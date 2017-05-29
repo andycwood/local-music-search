@@ -54,4 +54,18 @@ public class Song {
 	public String toString() {
 		return "{ \"path\": \"" + path + "\", \"artist\": \"" + artist + "\" }";
 	}
+	
+	public boolean equals(Song s) {
+		if (s == null && this != null)
+			return false;
+		
+		if (s.getId() == this.id)
+			return true;
+		
+		return this.id.equals(s.getId());
+	}
+	
+	public int hashCode() {
+		return id.hashCode();
+	}
 }
