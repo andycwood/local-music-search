@@ -108,9 +108,15 @@ You won't see any search results until you kick off an indexing job:
 
 7. Add a song to the playback queue
 * POST /queue {"songId": "591f819b9f865d10a250dda1"}
+```
+[{"id":"591f81949f865d10a250d145","path":"/Users/andywood/Music/Ani_Difranco/Dilate/01_02_Outta_Me_Onto_You.m4a","artist":"Ani DiFranco","album":"Dilate","title":"Outta Me, Onto You"}]
+```
 
 8. Remove song from the playback queue
 * DELETE /queue {"songId": "591f819b9f865d10a250dda1"}
+```
+[]
+```
 
 TODO : 
 * Implement Playback API
