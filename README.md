@@ -9,13 +9,12 @@ Built using Java 8
 Tested with MongoDB version 3.2.7
 
 The rest of the details can be determined from the pom.xml file
-And the package.json file
+and the package.json file
 
-Build the Spring server using maven
-
-Build the UI as follows:
-cd ./musicSearchUI
-npm install
+* Build the Spring server using maven
+* Build the UI as follows:
+  * cd ./musicSearchUI
+  * npm install
 
 ## Configure the application:
 * modify application.properties:
@@ -31,21 +30,21 @@ npm install
 Be sure mongod is running
 
 Run Java Server
-java -jar ./target/musicSearch-0.0.1-SNAPSHOT.jar
+* java -jar ./target/musicSearch-0.0.1-SNAPSHOT.jar
 
 ## Run React Web front end
-cd ./musicSearchUI
-npm start
+* cd ./musicSearchUI
+* npm start
 
 ## React front end:
-locahost:3000
+* locahost:3000
 * there is a simple search box
   * search is dynamic : every letter you add or remove updates the results
 * click on the ">>" in search results to add to the playback queue
 * click on the "X" in the playback queue to remove the item from the queue
 
 You won't see any search results until you kick off an indexing job:
-http://localhost:8080/load?action=start
+* http://localhost:8080/load?action=start
 
 ## Java Server Endpoints:
 * GET localhost:8080/
