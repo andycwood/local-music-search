@@ -8,6 +8,8 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 
+import com.werdnadoow.data.Song;
+
 public class GetMusicDetailsTask implements Callable<Song> {
 	
 	private String path;

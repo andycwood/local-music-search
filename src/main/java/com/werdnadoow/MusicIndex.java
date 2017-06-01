@@ -26,6 +26,9 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import com.werdnadoow.data.Song;
+
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StoredField;
 

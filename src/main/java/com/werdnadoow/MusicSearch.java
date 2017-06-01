@@ -15,6 +15,9 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.springframework.stereotype.Component;
 
+import com.werdnadoow.data.Song;
+import com.werdnadoow.data.SongRepository;
+
 // this is the class that reads the lucene index to deliver
 // search results 
 @Component

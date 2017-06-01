@@ -15,6 +15,10 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 
+import com.werdnadoow.data.LoadStatus;
+import com.werdnadoow.data.Song;
+import com.werdnadoow.data.SongRepository;
+
 
 // This class is the Worker thread that 
 // manages the indexing of music paths in the music folder

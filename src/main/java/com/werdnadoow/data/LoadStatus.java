@@ -1,4 +1,4 @@
-package com.werdnadoow;
+package com.werdnadoow.data;
 
 // simple class to communicate basic status to the 
 public class LoadStatus {

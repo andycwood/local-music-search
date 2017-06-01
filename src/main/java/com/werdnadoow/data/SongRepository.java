@@ -1,10 +1,10 @@
-package com.werdnadoow;
+package com.werdnadoow.data;
 
 import java.util.List;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-import com.werdnadoow.Song;
+import com.werdnadoow.data.Song;
 
 // This will be AUTO IMPLEMENTED by Spring into a Bean called songRepository
 // CRUD refers Create, Read, Update, Delete

@@ -4,7 +4,7 @@ import './App.css';
 
 var search_url = "http://localhost:8080/search?terms=";
 var queue_url = "http://localhost:8080/queue";
-var play_url = "http://localhost:8080/play";
+var songs_url = "http://localhost:8080/songs/";
  
 class SongRow extends React.Component {
   render() {
@@ -23,16 +23,62 @@ class SongRow extends React.Component {
 }
 //<a onClick={ () => this.props.onDelete(this.props.songid)} > &nbsp;X&nbsp; </a>
 class QueueRow extends React.Component {
+    constructor(props) {
+    super(props);
+    this.state = {
+      Song: null
+    };
+    this.getSongData = this.getSongData.bind(this);
+  }
+
+  getSongData(songId) {
+    if (songId) {
+      if (this.state.Song == null || this.state.Song.songId != songId) {
+        fetch(songs_url + songId)
+          .then( (response) => {
+               response.json()
+                        .then( (json) => {
+                              this.setState({ Song: json })
+                        });
+                      })
+          .catch(e => console.log(e));  
+        }
+      }
+  }
+  
+  componentWillMount() {
+    if (this.props.Song && this.props.Song.songId) {
+      this.getSongData(this.props.Song.songId);
+    }
+  }
+
+// be careful to not trigger extra fetches when there was no state change
+  componentWillUpdate(nextProps, nextState) {
+    if (nextProps.Song && nextProps.Song.songId) {
+      if (this.props.Song && nextProps.Song.songId != this.props.Song.songId) {
+        this.getSongData(nextProps.Song.songId);
+      }
+    }
+  }
+
   render() {
+    var rowid = "row0";
+
+    if (this.props.sequence) {
+      rowid = "row" + this.props.sequence%2;
+    }
+    if (this.state.Song == null)
+      return null;
+
     return (
-        <tr id={this.props.row} className="queueItem">
-        <td>&quot;{this.props.value}&quot;
-        &nbsp;by&nbsp;{this.props.artist}&nbsp;
+        <tr id={rowid} className="queueItem">
+        <td>&quot;{this.state.Song.title}&quot;
+        &nbsp;by&nbsp;{this.state.Song.artist}&nbsp;
         </td><td>
-        <a onClick={ () => this.props.onDelete(this.props.songid)} > &nbsp;X&nbsp; </a>
+        <a onClick={ () => this.props.onDelete(this.state.Song.id)} > &nbsp;X&nbsp; </a>
         </td>
         </tr>
-    );
+     );
   }
 }
 
@@ -57,7 +103,6 @@ class Songs extends React.Component {
         }
       });
     }
-      
     return (
       <table cellSpacing="5">
         <thead>
@@ -73,25 +118,11 @@ class Songs extends React.Component {
 
 
 class Queue extends React.Component {
-  render() {
-    var rows = [];
-    var idx = 0;
-    if (this.props.Queue != null) {
-
-      var callback = this.props.onDeleteSong;
-
-      this.props.Queue.forEach(function(Song) {
-        // use path when title is absent
-        // but also add those to the end of the list
-
-        if (Song.title != null) {
-          var row = "row" + (idx %2);
-         rows.push(<QueueRow row={row} key={Song.id} songid={Song.id} value={Song.title} artist={Song.artist} onDelete={callback} />);
-         idx++;
-        }
-      });
-    }
-      
+render() {
+    var callback = this.props.onDeleteSong;
+    var songs = this.props.Queue.map( Song =>
+      <QueueRow key={Song.songId} Song={Song} sequence={Song.sequence} onDelete={callback} />
+    );
     return (
       <table cellSpacing="5">
         <thead>
@@ -99,7 +130,7 @@ class Queue extends React.Component {
             <th>Playback Queue</th>          
           </tr>
         </thead>
-        <tbody className="QueueList">{rows}</tbody>
+        <tbody className="QueueList">{songs}</tbody>
       </table>
     );
   }
@@ -231,7 +262,7 @@ componentDidMount() {
       .then( (response) => {
            response.json()
                     .then( (json) => {
-                        this.setState( {Queue: json} )
+                        this.setState( {Queue: json} );
                     });
                   })
       .catch(e => console.log(e));

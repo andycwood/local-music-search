@@ -1,4 +1,4 @@
-package com.werdnadoow;
+package com.werdnadoow.data;
 
 import org.springframework.data.annotation.Id;
 
