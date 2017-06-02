@@ -147,5 +147,4 @@ TODO :
 * Implement Playback API
 * Implement incremental file change detection
 * Implement indexing on start up
-* Store indexing statistics in mongo
 
