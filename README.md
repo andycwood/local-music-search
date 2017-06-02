@@ -104,19 +104,19 @@ You won't see any search results until you kick off an indexing job:
 3. Start a load
 * GET /load?action=start
 ```
-{"status":"starting","tracks":0,"tracksprocessed":0}
+{"status":"starting","currentLoadTracks":0,"currentLoadTracksProcessed":0,"loadStartTime":null,"loadEndTime":null,"lastLoadCompletion":null,"lastLoadSeconds":null,"lastLoadTotalTracks":-1}
 ``` 
 
 4. Check on load status
 * GET /load?action=status
 ```
-{"status":"running","tracks":7534,"tracksprocessed":1221}
+{"status":"running","currentLoadTracks":7534,"currentLoadTracksProcessed":1221,"loadStartTime":"2017-06-02T04:04:14.296Z","loadEndTime":null,"lastLoadCompletion":null,"lastLoadSeconds":null,"lastLoadTotalTracks":-1}
 ```
 
 5. Look for tracks processed to match tracks found:
 * GET /load?action=status
 ```
-{"status":"idle","tracks":7534,"tracksprocessed":7534}
+{"status":"idle","currentLoadTracks":7534,"currentLoadTracksProcessed":7534,"loadStartTime":"2017-06-02T04:04:14.296Z","loadEndTime":"2017-06-02T04:07:21.799Z","lastLoadCompletion":"SUCCESS","lastLoadSeconds":187,"lastLoadTotalTracks":7534}
 ```
 
 6. Query music after load is complete
@@ -136,12 +136,43 @@ You won't see any search results until you kick off an indexing job:
 ```
 {"id":"591f81989f865d10a250d90f","path":"/Users/andywood/Music/Iggy_Azalea_Fancy_featuring_Charli_XCX.mp3","artist":"Iggy Azalea","album":"Fancy","title":"Fancy featuring Charli XCX"}
 ```
+8. Start playback of song
+* POST /playing {"songId": "591f81989f865d10a250d90f"}
 
-8. Remove song from the playback queue
+9. Stop playback of song
+* DELETE /playing
+
+10. Remove song from the playback queue
 * DELETE /queue {"songId": "591f81989f865d10a250d90f"}
 ```
 []
 ```
+
+Mongo Collections:
+1. songs
+* the details of all songs found in your music folder
+
+2. queuedSong
+*  the list of songs in the playback queue
+
+3. musicFacts
+* general collection of settings (name / value pairs)
+
+React Components
+1. SearchForm
+* captures the search characters and performs search for each change to the search box
+
+2. Songs
+* the list of search results
+
+3. Queue
+* the list of songs in the playback queue
+
+4. SongRow
+* one row in the list of search results
+
+5. QueueRow
+* one row in the playback queue
 
 TODO : 
 * Implement Playback API
