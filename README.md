@@ -20,7 +20,8 @@ and the package.json file
 * modify application.properties:
   * lucene.indexFolder : location of your lucene index files
   * lucene.musicFolder : location of your local music files
-  * spring.data.mongodb.* : mongodb details
+  * spring.data.mongodb.
+    * : mongodb details
 
 * modify beans.xml
   * readTaskExecutor : you may want to adjust thread pool settings here
