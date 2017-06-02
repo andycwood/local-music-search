@@ -129,7 +129,7 @@ You won't see any search results until you kick off an indexing job:
 7. Add a song to the playback queue
 * POST /queue {"songId": "591f81989f865d10a250d90f"}
 ```
-[{"id":"592f7d769f865d3457f7ab95","songId":"591f81989f865d10a250d90f","sequence":7}]
+[{"id":"592f7d769f865d3457f7ab95","songId":"591f81989f865d10a250d90f","sequence":1}]
 ```
 
 7.1 React UI will call songs API to get details:
@@ -139,9 +139,15 @@ You won't see any search results until you kick off an indexing job:
 ```
 8. Start playback of song
 * POST /playing {"songId": "591f81989f865d10a250d90f"}
+```
+[{"songId":"591f81989f865d10a250d90f"}]
+```
 
 9. Stop playback of song
 * DELETE /playing
+```
+[]
+```
 
 10. Remove song from the playback queue
 * DELETE /queue {"songId": "591f81989f865d10a250d90f"}
