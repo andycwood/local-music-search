@@ -52,7 +52,11 @@ public class Song {
 	}
 	
 	public String toString() {
-		return "{ \"path\": \"" + path + "\", \"artist\": \"" + artist + "\" }";
+		if (title != null && title.length() >0)
+		{
+			return "{ \"artist\": \"" + artist + "\", \"title\": \"" + title + "\" }";
+		}
+		return "{ \"artist\": \"" + artist + "\", \"path\": \"" + path + "\" }";
 	}
 	
 	public boolean equals(Song s) {

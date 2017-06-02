@@ -353,31 +353,42 @@ public class MusicSearchController {
     	
     	if (queueRequest == null || queueRequest.songId == null) {
     		return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.BAD_REQUEST);
-    	}
+		}	
     	// repo not setup? server error
     	if (queuedSongRepository == null){
     		return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.INTERNAL_SERVER_ERROR);
     	}
     	
     	try {
+    		List<QueuedSong> query = null;
     		
-			// Lookup the Song in mongo, get the details
-			Song s = lookupSong(queueRequest.songId);
-			if (s == null) {
-				// song not found? caller error
-	    		return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.BAD_REQUEST);
-	    	}
-			
-			List<QueuedSong> query = queuedSongRepository.findBySongId(s.getId());
-			// song is not in the queue, lets call this an error for now but may be ok
-			if (query == null || query.size()==0) {
-				return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.BAD_REQUEST);
-			}
+    		// If there is no request body, then this is a "delete ALL request"
+
+    		if (queueRequest.songId.compareTo("ALL")==0)
+    		{
+        		query = queuedSongRepository.findAll();
+				System.out.println("deleting " + query.size() + " songs from playback queue");
+			}	
+        	else {
+				// Lookup the Song in mongo, get the details
+				Song s = lookupSong(queueRequest.songId);
+				if (s == null) {
+					// song not found? caller error
+		    		return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.BAD_REQUEST);
+		    	}
+				System.out.println("deleting " + s + " from playback queue");
+				query = queuedSongRepository.findBySongId(s.getId());
+
+				// song is not in the queue, its an error
+				if (query == null || query.size()==0) {
+					return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.BAD_REQUEST);
+				}
+			}				
+
 			// delete from the queue
-			queuedSongRepository.delete(query.get(0));
-			System.out.println("deleted Song " + s + " from playback queue");
+			queuedSongRepository.delete(query);
 			setValue("lastQueueDeleteEvent",LocalDateTime.now().toString());
-			
+
 			// return the whole queue for the response
 			queue = queuedSongRepository.findAll();
     	}
@@ -387,6 +398,7 @@ public class MusicSearchController {
     	}
     	return new ResponseEntity<List<QueuedSong>>(queue, HttpStatus.OK);
     }   
+
     // GET queue endpoint
     // returns list of songs in the queue
     @CrossOrigin(origins = "http://localhost:3000")

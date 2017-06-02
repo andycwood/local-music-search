@@ -48,8 +48,35 @@ public class MusicSearchApplicationTests {
         
     }
     @Test
-    public void getSearchLoad() throws Exception {
+    public void getLoad() throws Exception {
         mvc.perform(MockMvcRequestBuilders.get("/load?action=status").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().is(200));
+
+    }
+    @Test
+    public void getQueue() throws Exception {
+        mvc.perform(MockMvcRequestBuilders.get("/queue").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().is(200));
+
+    }
+    @Test
+    public void deleteQueue() throws Exception {
+        mvc.perform(MockMvcRequestBuilders.delete("/queue")
+        		.contentType("application/json")
+        		.content("{\"songId\":\"ALL\"}")
+        		.accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().is(200));
+
+    }
+    @Test
+    public void getPlaying() throws Exception {
+        mvc.perform(MockMvcRequestBuilders.get("/playing").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().is(200));
+
+    }
+    @Test
+    public void deletePlaying() throws Exception {
+        mvc.perform(MockMvcRequestBuilders.delete("/playing").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().is(200));
 
     }
