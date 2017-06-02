@@ -99,7 +99,7 @@ You won't see any search results until you kick off an indexing job:
 2. Check load status, but we have never done a load:
 * GET /load?action=status
 ```
-{"status":"idle","tracks":0,"tracksprocessed":0}
+{"status":"idle","currentLoadTracks":0,"currentLoadTracksProcessed":0,"loadStartTime":null,"loadEndTime":null,"lastLoadCompletion":null,"lastLoadSeconds":null,"lastLoadTotalTracks":-1}
 ```
 
 3. Start a load
