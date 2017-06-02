@@ -16,6 +16,8 @@ import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 
 import com.werdnadoow.data.LoadStatus;
+import com.werdnadoow.data.MongoDbHelper;
+import com.werdnadoow.data.MusicFactsRepository;
 import com.werdnadoow.data.Song;
 import com.werdnadoow.data.SongRepository;
 
@@ -70,6 +72,8 @@ public class LoadMusicTask implements Callable<String> {
 				{
 					ret = "load Music successful!";
 				}
+				// set completion timestamp
+				statusFlags.setLoadEndTime();
 				statusFlags.setIsRunning(false);;
 				lock.unlock();
 			}

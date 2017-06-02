@@ -42,6 +42,7 @@ Run Java Server
   * search is dynamic : every letter you add or remove updates the results
 * click on the ">>" in search results to add to the playback queue
 * click on the "X" in the playback queue to remove the item from the queue
+* click on the ">>" in the playback queue to start playback
 
 You won't see any search results until you kick off an indexing job:
 * http://localhost:8080/load?action=start
@@ -63,11 +64,29 @@ You won't see any search results until you kick off an indexing job:
 
 * POST localhost:8080/queue
   * add a song to the queue
-  * json body is : { "songId": "<song idi>"}
+  * json body is : { "songId": "<song id>"}
 
 * DELETE localhost:8080/queue
   * remove a song from the queue
   * json body is : { "songId": "<song id>"}
+
+* GET localhost:8080/songs
+  * list ALL songs
+  * this is slow to return since it is not paginated yet
+  * it is not used by the UI yet
+
+* GET localhost:8080/songs/{id}
+  * returns the details for one song 
+
+* GET localhost:8080/playing
+  * returns the currently playing song
+
+* POST localhost:8080/playing
+  * starts playback of a song in the queue
+  * json body is : { "songId": "<song id>"}
+
+* DELETE localhost:8080/playing
+  * stops playback
 
 ## Sample Output of an API workflow:
 1. Query for music, but none has been indexed yet:
@@ -107,13 +126,19 @@ You won't see any search results until you kick off an indexing job:
 ```
 
 7. Add a song to the playback queue
-* POST /queue {"songId": "591f819b9f865d10a250dda1"}
+* POST /queue {"songId": "591f81989f865d10a250d90f"}
 ```
-[{"id":"591f81949f865d10a250d145","path":"/Users/andywood/Music/Ani_Difranco/Dilate/01_02_Outta_Me_Onto_You.m4a","artist":"Ani DiFranco","album":"Dilate","title":"Outta Me, Onto You"}]
+[{"id":"592f7d769f865d3457f7ab95","songId":"591f81989f865d10a250d90f","sequence":7}]
+```
+
+7.1 React UI will call songs API to get details:
+* GET /songs/591f81989f865d10a250d90f
+```
+{"id":"591f81989f865d10a250d90f","path":"/Users/andywood/Music/Iggy_Azalea_Fancy_featuring_Charli_XCX.mp3","artist":"Iggy Azalea","album":"Fancy","title":"Fancy featuring Charli XCX"}
 ```
 
 8. Remove song from the playback queue
-* DELETE /queue {"songId": "591f819b9f865d10a250dda1"}
+* DELETE /queue {"songId": "591f81989f865d10a250d90f"}
 ```
 []
 ```

@@ -5,12 +5,18 @@ import org.springframework.web.bind.annotation.RestController;
 import com.werdnadoow.data.LoadStatus;
 import com.werdnadoow.data.LoadStatusResult;
 import com.werdnadoow.data.MongoDbHelper;
+import com.werdnadoow.data.MusicFacts;
+import com.werdnadoow.data.MusicFactsRepository;
 import com.werdnadoow.data.QueueRequest;
 import com.werdnadoow.data.QueuedSong;
 import com.werdnadoow.data.QueuedSongRepository;
 import com.werdnadoow.data.Song;
 import com.werdnadoow.data.SongRepository;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -61,7 +67,32 @@ public class MusicSearchController {
     
     @Autowired
     private QueuedSongRepository queuedSongRepository;
-        
+    
+    @Autowired
+    private MusicFactsRepository musicFactsRepository;
+    
+    // Wrappers around MongoDB helper functions
+    private Song lookupSong(String songId) {
+		MongoDbHelper mhelp = new MongoDbHelper();
+		return mhelp.lookup(songId, songRepository);
+    }
+    
+    private Integer getMaxQueuedSequence() {
+		MongoDbHelper mhelp = new MongoDbHelper();
+		return mhelp.getMaxQueuedSequence(queuedSongRepository);
+    }
+    
+    private String getValue(String name) {
+    	MongoDbHelper mhelp = new MongoDbHelper();
+    	MusicFacts m = mhelp.getMusicFacts(name, musicFactsRepository);
+    	return m.getValue();
+    }
+    
+    private void setValue(String name, String value) {
+    	MongoDbHelper mhelp = new MongoDbHelper();
+    	mhelp.setMusicFacts(name, value, musicFactsRepository);
+    }
+    
     // This end point is called by a react application
     // It is the search end point
     // /search
@@ -137,6 +168,8 @@ public class MusicSearchController {
 			else if (action.equals("start"))
 			{
 				lsr.status = "starting";
+				ls.setLoadStartTime();
+				setValue("lastLoadStartTime",ls.getLoadStartTime().toString());
 				
 				ApplicationContext ctx = new ClassPathXmlApplicationContext("beans.xml");
 				
@@ -151,15 +184,17 @@ public class MusicSearchController {
 		            @Override
 		            public void onSuccess(String str) {
 		            	System.out.println("Task returned status: " + str);
-		            	// pass task status back to caller
-		            	lsr.message = str;
+		            	// I am storing the data in mongo partly to avoid concurrency issues
+		            	setValue("lastLoadEndTime",ls.getLoadEndTime().toString());
+		            	setValue("lastLoadCompletion","SUCCESS");
+		            	setValue("lastLoadTotalTracks", ls.getProcessedCount().toString());
 		            }
 	
 		            @Override
 		            public void onFailure(Throwable t) {
 		            	System.out.println("Task failed! " + t.getMessage() );
-		            	// pass failure message back to caller
-		            	lsr.message = t.getMessage();
+		            	setValue("lastLoadCompletion","ERROR");
+		            	setValue("lastLoadErrorMessage",t.getMessage());
 		            }
 		        });
 	
@@ -171,21 +206,70 @@ public class MusicSearchController {
 			// How many tracks found by folder crawling?
 			if (ls.getTrackCount() < 0)
 			{
-				lsr.tracks=0;
+				lsr.currentLoadTracks=0;
 			}
 			else 
 			{
-				lsr.tracks = ls.getTrackCount();
+				lsr.currentLoadTracks = ls.getTrackCount();
 			}
 			
 			// how many tracks processed so far
 			if (ls.getProcessedCount() < 0)
 			{
-				lsr.tracksprocessed = 0;
+				lsr.currentLoadTracksProcessed = 0;
 			}
 			else 
 			{
-				lsr.tracksprocessed = ls.getProcessedCount();
+				lsr.currentLoadTracksProcessed = ls.getProcessedCount();
+			}
+			
+			// When did we start/end the latest load?
+			// (pull these from Mongo)
+			lsr.loadStartTime = getValue("lastLoadStartTime");
+			lsr.loadEndTime = getValue("lastLoadEndTime");
+			lsr.lastLoadCompletion = getValue("lastLoadCompletion");
+			
+			// try to parse the total tracks
+			String tracks = getValue("lastLoadTotalTracks");
+			if (tracks != null && tracks.length() > 0) {
+				try {
+					lsr.lastLoadTotalTracks = Integer.parseInt(tracks);
+				}
+				catch (NumberFormatException e) {
+					e.printStackTrace();
+					lsr.lastLoadTotalTracks = -1;
+				}
+			}
+			else {
+				lsr.lastLoadTotalTracks = -1;
+			}
+
+			
+			// calculate last load total seconds
+			if (getValue("lastLoadStartTime") != null && getValue("lastLoadEndTime") != null) {
+				
+				try 
+				{
+					Instant start = Instant.parse(getValue("lastLoadStartTime"));
+					Instant end = Instant.parse(getValue("lastLoadEndTime"));
+					// if start it less than end, then the last load is done computing
+					if (start.isBefore(end)) {
+						Long seconds = Duration.between(start,end).getSeconds();
+						if (seconds > 0) {
+							lsr.lastLoadSeconds = seconds;
+						}
+						else {
+							lsr.lastLoadSeconds= -1L;
+						}
+					}
+					else {
+						lsr.lastLoadSeconds = -1L;
+					}
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+					lsr.lastLoadSeconds = -1L;
+				}
 			}
 		}
 		catch (Exception e) {
@@ -196,7 +280,9 @@ public class MusicSearchController {
     }
    
     
-    // Play manages additions to the playback queue
+    // POST /queue
+    // adds a song to the queue
+    // returns the full queue
     // songId= id of the song to play
     @CrossOrigin(origins = "http://localhost:3000")
     @RequestMapping(value = "/queue", method = RequestMethod.POST, produces = "application/json")
@@ -215,8 +301,7 @@ public class MusicSearchController {
     	try {
     		
 			// Lookup the Song in mongo, get the details
-    		MongoDbHelper mhelp = new MongoDbHelper();
-			Song s = mhelp.lookup(queueRequest.songId, songRepository);
+			Song s = lookupSong(queueRequest.songId);
 			if (s == null) {
 				// song not found? caller error
 	    		return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.BAD_REQUEST);
@@ -232,12 +317,13 @@ public class MusicSearchController {
 				qs.setSongId(s.getId());
 				
 				// get the max value of all in the queue
-				Integer sequence = mhelp.getMaxQueuedSequence(queuedSongRepository);
+				Integer sequence = getMaxQueuedSequence();
 				qs.setSequence(++sequence);
 				
 				// add the song to the end of the queue
 				queuedSongRepository.save(qs);
 				System.out.println("Song " + s + " Added to playback queue");
+				setValue("lastQueueAddEvent",LocalDateTime.now().toString());
 			}
 			
 			// return the whole queue for the response
@@ -255,7 +341,9 @@ public class MusicSearchController {
     	return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.OK);
     }
     
-    // Play manages additions to the playback queue
+    // DELETE /queue 
+    // removes a song from the queue
+    // returns the full queue
     // songId= id of the song to play
     @CrossOrigin(origins = "http://localhost:3000")
     @RequestMapping(value = "/queue", method = RequestMethod.DELETE, produces = "application/json")
@@ -274,8 +362,7 @@ public class MusicSearchController {
     	try {
     		
 			// Lookup the Song in mongo, get the details
-    		MongoDbHelper mhelp = new MongoDbHelper();
-			Song s = mhelp.lookup(queueRequest.songId, songRepository);
+			Song s = lookupSong(queueRequest.songId);
 			if (s == null) {
 				// song not found? caller error
 	    		return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.BAD_REQUEST);
@@ -289,6 +376,7 @@ public class MusicSearchController {
 			// delete from the queue
 			queuedSongRepository.delete(query.get(0));
 			System.out.println("deleted Song " + s + " from playback queue");
+			setValue("lastQueueDeleteEvent",LocalDateTime.now().toString());
 			
 			// return the whole queue for the response
 			queue = queuedSongRepository.findAll();
@@ -299,7 +387,8 @@ public class MusicSearchController {
     	}
     	return new ResponseEntity<List<QueuedSong>>(queue, HttpStatus.OK);
     }   
-    
+    // GET queue endpoint
+    // returns list of songs in the queue
     @CrossOrigin(origins = "http://localhost:3000")
     @RequestMapping(value = "/queue", method = RequestMethod.GET, produces = "application/json")
     public ResponseEntity<List<QueuedSong>> queueList() {
@@ -319,7 +408,8 @@ public class MusicSearchController {
     	
     	return new ResponseEntity<List<QueuedSong>>(queue,HttpStatus.OK);
     }
-    
+    // /songs endpoint
+    // returns all songs in mongoDB collection "songs"
     //TODO : implement pagination
     @CrossOrigin(origins = "http://localhost:3000")
     @RequestMapping(value = "/songs", method = RequestMethod.GET, produces = "application/json")
@@ -341,6 +431,8 @@ public class MusicSearchController {
     	return new ResponseEntity<List<Song>>(songs,HttpStatus.OK);
     }
     
+    // songs/{id} endpoint
+    // returns details for one song
     @CrossOrigin(origins = "http://localhost:3000")
     @RequestMapping(value = "/songs/{id}", method = RequestMethod.GET, produces = "application/json")
     public ResponseEntity<Song> songById(@PathVariable("id") String songId) {
@@ -351,13 +443,101 @@ public class MusicSearchController {
     		return new ResponseEntity<Song>(song,HttpStatus.INTERNAL_SERVER_ERROR);
     	}
 
-		MongoDbHelper mhelp = new MongoDbHelper();
-		song = mhelp.lookup(songId, songRepository);
+		song = lookupSong(songId);
     	
     	if (song == null) {
     		return new ResponseEntity<Song>(song,HttpStatus.INTERNAL_SERVER_ERROR);
     	}
     	
     	return new ResponseEntity<Song>(song,HttpStatus.OK);
+    }
+    
+    // GET /playing endpoint
+    // returns the songId that is currently playing (list containing one song)
+    // returns and empty list if no song is playing
+    //TODO : implement pagination
+    @CrossOrigin(origins = "http://localhost:3000")
+    @RequestMapping(value = "/playing", method = RequestMethod.GET, produces = "application/json")
+    public ResponseEntity<List<QueueRequest>> playingList() {
+
+    	List<QueueRequest> songs = new ArrayList<QueueRequest>();
+
+    	if (musicFactsRepository == null){
+    		return new ResponseEntity<List<QueueRequest>>(songs,HttpStatus.INTERNAL_SERVER_ERROR);
+    	}
+    	
+    	// return the whole list
+    	String songId = getValue("nowPlayingSongId");
+    	
+    	if (songId != null && songId.length() > 0) {
+    		QueueRequest qr = new QueueRequest();
+    		qr.songId = songId;
+    		songs.add(qr);
+    	}
+    	return new ResponseEntity<List<QueueRequest>>(songs,HttpStatus.OK);
+    }
+
+    // POST /playing
+    // set the song that is now playing
+    // returns a list of one song
+    // songId= id of the song to play
+    @CrossOrigin(origins = "http://localhost:3000")
+    @RequestMapping(value = "/playing", method = RequestMethod.POST, produces = "application/json")
+    public ResponseEntity<List<QueueRequest>> PlayingSet(@RequestBody QueueRequest queueRequest ) {
+
+    	List<QueueRequest> playing = new ArrayList<QueueRequest>();
+    	
+    	if (queueRequest == null || queueRequest.songId == null) {
+    		return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.BAD_REQUEST);
+    	}
+    	
+    	if (musicFactsRepository == null){
+    		return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.INTERNAL_SERVER_ERROR);
+    	}
+    	
+    	try {
+    		
+			// Lookup the Song in mongo, get the details
+			Song s = lookupSong(queueRequest.songId);
+			if (s == null) {
+				// song not found? caller error
+	    		return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.BAD_REQUEST);
+	    	}
+			
+			setValue("nowPlayingSongId",queueRequest.songId);
+			QueueRequest qr = new QueueRequest();
+			qr.songId = queueRequest.songId;
+			playing.add(qr);
+    	}
+    	catch (Exception e) {
+    		e.printStackTrace();
+    		return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.INTERNAL_SERVER_ERROR);
+    	}
+    	return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.OK);
+    }
+    
+    // DELETE /queue 
+    // removes a song from the queue
+    // returns the full queue
+    @CrossOrigin(origins = "http://localhost:3000")
+    @RequestMapping(value = "/playing", method = RequestMethod.DELETE, produces = "application/json")
+    public ResponseEntity<List<QueueRequest>> PlayingDelete() {
+
+    	List<QueueRequest> playing = new ArrayList<QueueRequest>();
+    	
+    	if (musicFactsRepository == null){
+    		return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.INTERNAL_SERVER_ERROR);
+    	}
+    	
+    	try {    		
+			// Lookup the Song in mongo, get the details
+			// clear out the song id value
+			setValue("nowPlayingSongId","");
+    	}
+    	catch (Exception e) {
+    		e.printStackTrace();
+    		return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.INTERNAL_SERVER_ERROR);
+    	}
+    	return new ResponseEntity<List<QueueRequest>>(playing,HttpStatus.OK);
     }
 }

@@ -2,9 +2,20 @@ import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
 
+// search for music
 var search_url = "http://localhost:8080/search?terms=";
+
+// view playback queue, add the queue, delete from queue
 var queue_url = "http://localhost:8080/queue";
+
+// get song details
 var songs_url = "http://localhost:8080/songs/";
+
+// start and stop playing a song
+var playing_url = "http://localhost:8080/playing";
+
+// view indexing load statistics
+var load_url = "http://localhost:8080/load";
  
 class SongRow extends React.Component {
   render() {
@@ -21,7 +32,41 @@ class SongRow extends React.Component {
     );
   }
 }
-//<a onClick={ () => this.props.onDelete(this.props.songid)} > &nbsp;X&nbsp; </a>
+
+class Songs extends React.Component {
+  render() {
+    var rows = [];
+    var idx = 0;
+
+    var callback = this.props.onQueueSong;
+
+    if (this.props.Songs != null) {
+
+      this.props.Songs.forEach(function(Song) {
+        // use path when title is absent
+        // but also add those to the end of the list
+
+        if (Song.title != null) {
+          var row = "row" + (idx %2);
+         rows.push(<SongRow row={row} key={Song.id} songid={Song.id} value={Song.title} artist={Song.artist} 
+          album={Song.album} onQueue={callback} />);
+         idx++;
+        }
+      });
+    }
+    return (
+      <table cellSpacing="5">
+        <thead>
+          <tr>
+            <th>Search results</th>          
+          </tr>
+        </thead>
+        <tbody className="SongList">{rows}</tbody>
+      </table>
+    );
+  }
+}
+
 class QueueRow extends React.Component {
     constructor(props) {
     super(props);
@@ -64,70 +109,45 @@ class QueueRow extends React.Component {
   render() {
     var rowid = "row0";
 
+    if (this.state.Song == null)
+      return null;
+
     if (this.props.sequence) {
       rowid = "row" + this.props.sequence%2;
     }
-    if (this.state.Song == null)
-      return null;
+    
+    if (this.props.Playing && this.props.Playing.songId == this.state.Song.id) {
+      rowid = "playing";
+    }    
 
     return (
         <tr id={rowid} className="queueItem">
         <td>&quot;{this.state.Song.title}&quot;
         &nbsp;by&nbsp;{this.state.Song.artist}&nbsp;
         </td><td>
-        <a onClick={ () => this.props.onDelete(this.state.Song.id)} > &nbsp;X&nbsp; </a>
+        <a href="#" onClick={ () => this.props.onDelete(this.state.Song.id)} > &nbsp;X&nbsp; </a>
+        <a href="#" onClick={ () => this.props.onPlay(this.state.Song.id)} > &nbsp;>>&nbsp; </a>
         </td>
         </tr>
      );
   }
 }
 
-class Songs extends React.Component {
-  render() {
-    var rows = [];
-    var idx = 0;
-
-    var callback = this.props.onQueueSong;
-
-    if (this.props.Songs != null) {
-
-      this.props.Songs.forEach(function(Song) {
-        // use path when title is absent
-        // but also add those to the end of the list
-
-        if (Song.title != null) {
-          var row = "row" + (idx %2);
-         rows.push(<SongRow row={row} key={Song.id} songid={Song.id} value={Song.title} artist={Song.artist} 
-          album={Song.album} onQueue={callback} />);
-         idx++;
-        }
-      });
-    }
-    return (
-      <table cellSpacing="5">
-        <thead>
-          <tr>
-            <th>Search results</th>          
-          </tr>
-        </thead>
-        <tbody className="SongList">{rows}</tbody>
-      </table>
-    );
-  }
-}
-
-
 class Queue extends React.Component {
 render() {
-    var callback = this.props.onDeleteSong;
+    // extract the currently playing song
+    var songPlaying;
+    this.props.Playing.forEach( (s) => { songPlaying = s; });
+
+    // expand the Queue into a list of Songs
     var songs = this.props.Queue.map( Song =>
-      <QueueRow key={Song.songId} Song={Song} sequence={Song.sequence} onDelete={callback} />
+      <QueueRow key={Song.songId} Song={Song} Playing={songPlaying} sequence={Song.sequence} onDelete={this.props.onDeleteSong} onPlay={this.props.onPlaySong}/>
     );
     return (
       <table cellSpacing="5">
         <thead>
           <tr>
-            <th>Playback Queue</th>          
+            <th>Playback Queue  <a href="#" onClick={ () => this.props.onStopPlay()} > &nbsp;(stop playback)&nbsp; </a></th>          
           </tr>
         </thead>
         <tbody className="QueueList">{songs}</tbody>
@@ -167,12 +187,16 @@ class App extends Component {
     this.state = {
       searchText: '',
       Songs: [],
-      Queue: []
+      Queue: [],
+      Playing: [],
+      Stats: null
     };
     
     this.handleSearchTextInput = this.handleSearchTextInput.bind(this);
     this.queueSong = this.queueSong.bind(this);
     this.deleteSong = this.deleteSong.bind(this);
+    this.playSong = this.playSong.bind(this);
+    this.stopPlayback = this.stopPlayback.bind(this);
   }
 
   handleSearchTextInput(searchText) {
@@ -194,7 +218,7 @@ class App extends Component {
     };
 
 // this is called from search results to add a song to the queue
-  queueSong(songid) {
+queueSong(songid) {
 
     if (songid == null)
       return;
@@ -222,10 +246,10 @@ class App extends Component {
                     });
                   })
       .catch(e => console.log(e));
-    };
+};
 
 // this is called from the playback queue, to remove a song
-  deleteSong(songid) {
+deleteSong(songid) {
 
     if (songid == null)
       return;
@@ -254,7 +278,7 @@ class App extends Component {
                     });
                   })
       .catch(e => console.log(e));
-    };
+};
 
 componentDidMount() {
   // use read only interface to load playback queue
@@ -266,15 +290,99 @@ componentDidMount() {
                     });
                   })
       .catch(e => console.log(e));
-    };
 
-// todo : implement play song function
+  // use read only interface to get active song
+  fetch(playing_url)
+      .then( (response) => {
+           response.json()
+                    .then( (json) => {
+                        this.setState( {Playing: json} );
+                    });
+                  })
+      .catch(e => console.log(e));      
+
+  // use read only interface to get index loading details
+  fetch(load_url)
+      .then( (response) => {
+           response.json()
+                    .then( (json) => {
+                        this.setState( {Stats: json} );
+                    });
+                  })
+      .catch(e => console.log(e));  
+};
+
+stopPlayback() {
+
+    // set json headers, post method, send json
+    fetch(playing_url,
+      {     
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        method: "DELETE"
+      })
+      .then( (response) => {
+           response.json()
+                    .then( (json) => {
+                        this.setState( {Playing: json} )
+                    });
+                  })
+      .catch(e => console.log(e));
+};
+
+// this is called from search results to add a song to the queue
+playSong(songid) {
+
+    if (songid == null)
+      return;
+
+    if (songid.length <= 0)
+      return;
+
+    // convert response to json
+    var reqBody = JSON.stringify({songId: songid});
+
+    // set json headers, post method, send json
+    fetch(playing_url,
+      {     
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        method: "POST", 
+        body: reqBody
+      })
+      .then( (response) => {
+           response.json()
+                    .then( (json) => {
+                        this.setState( {Playing: json} )
+                    });
+                  })
+      .catch(e => console.log(e));
+};
 
   render() {
+    var tracks;
+    var ts;
+    if (this.state.Stats) {
+      if (this.state.Stats.lastLoadTotalTracks) {
+        tracks = this.state.Stats.lastLoadTotalTracks;
+      }
+      if (this.state.Stats.loadStartTime) {
+        ts = this.state.Stats.loadStartTime;
+      }
+    }
     return (
       <div className="App">
         <div className="App-header">
-          <h2>Music Search</h2>
+          <div className="title">
+            <h2>Music Server</h2>
+          </div>
+          <div className="Stats">
+            total songs {tracks}, last indexed {ts}
+          </div>
         </div>
         <div className="App-body">
           <SearchForm         
@@ -288,7 +396,7 @@ componentDidMount() {
             </div>
             <div className="Queue">
               <Queue 
-                Queue={this.state.Queue} onDeleteSong={this.deleteSong}/>
+                Queue={this.state.Queue} Playing={this.state.Playing} onDeleteSong={this.deleteSong} onPlaySong={this.playSong} onStopPlay={this.stopPlayback}/>
             </div>       
           </div>
         </div>

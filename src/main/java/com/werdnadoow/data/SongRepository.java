@@ -9,7 +9,7 @@ import com.werdnadoow.data.Song;
 // This will be AUTO IMPLEMENTED by Spring into a Bean called songRepository
 // CRUD refers Create, Read, Update, Delete
 
-public interface SongRepository extends MongoRepository<Song, Long> {
+public interface SongRepository extends MongoRepository<Song, String> {
 
 	List<Song> findByPath(String path);
 
